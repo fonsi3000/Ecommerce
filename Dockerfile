@@ -33,7 +33,7 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 WORKDIR /app
 COPY . .
 
-# 👷 Prepara todo como root (se puede usar otro usuario después si deseas)
+# 👷 Prepara Laravel, Vite y Octane
 RUN composer install --no-interaction --optimize-autoloader --no-dev && \
     composer require laravel/octane --no-interaction && \
     php artisan octane:install --server=swoole && \
@@ -43,7 +43,7 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev && \
     chown -R www-data:www-data /app && \
     chmod -R 775 storage bootstrap/cache
 
-# 🚀 Arranca Octane por Swoole en el puerto 8080
-CMD ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=8080", "--workers=4", "--task-workers=2"]
+# 🚀 Comando final para correr Octane en puerto 7070
+CMD ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=7070", "--workers=4", "--task-workers=2"]
 
-EXPOSE 8080
+EXPOSE 7070
