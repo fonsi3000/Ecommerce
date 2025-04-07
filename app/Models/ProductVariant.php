@@ -11,12 +11,14 @@ class ProductVariant extends Model
 
     protected $fillable = [
         'product_id',
+        'atributo_tipo',
         'color',
+        'nombre_color',
         'tono',
+        'nombre_tono',
         'stock',
     ];
 
-    // Relación inversa al producto
     public function product()
     {
         return $this->belongsTo(Product::class);

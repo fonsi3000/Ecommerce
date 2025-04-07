@@ -3,7 +3,7 @@
 namespace App\Filament\Resources;
 
 use App\Filament\Resources\ProductResource\Pages;
-use App\Filament\Resources\ProductResource\RelationManagers\AttributesRelationManager;
+use App\Filament\Resources\ProductResource\RelationManagers\VariantsRelationManager;
 use App\Models\Product;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -62,12 +62,6 @@ class ProductResource extends Resource
                 ->prefix('$')
                 ->suffix('COP'),
 
-            TextInput::make('stock')
-                ->label('Stock')
-                ->required()
-                ->numeric()
-                ->default(0),
-
             FileUpload::make('image')
                 ->label('Imagen principal')
                 ->disk('public')
@@ -106,10 +100,10 @@ class ProductResource extends Resource
                 ->money('COP')
                 ->sortable(),
 
-            TextColumn::make('stock')
-                ->label('Stock')
-                ->numeric()
-                ->sortable(),
+            TextColumn::make('variants_sum_stock')
+                ->label('Stock Total')
+                ->formatStateUsing(fn($record) => $record->variants->sum('stock'))
+                ->sortable(false),
 
             TextColumn::make('image')
                 ->label('Ruta de imagen')
@@ -161,7 +155,7 @@ class ProductResource extends Resource
     public static function getRelations(): array
     {
         return [
-            AttributesRelationManager::class,
+            VariantsRelationManager::class,
         ];
     }
 
@@ -169,6 +163,8 @@ class ProductResource extends Resource
     {
         return [
             'index' => Pages\ListProducts::route('/'),
+            'create' => Pages\CreateProduct::route('/create'),
+            'edit' => Pages\EditProduct::route('/{record}/edit'),
         ];
     }
 }

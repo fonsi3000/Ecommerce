@@ -14,14 +14,11 @@ return new class extends Migration
         Schema::create('product_images', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('product_id');
-            // Este campo es opcional, para relacionar la imagen con un atributo (ej. color)
-            $table->unsignedBigInteger('attribute_id')->nullable();
             $table->string('image_path');
             $table->timestamps();
 
             // Relaciones foráneas
             $table->foreign('product_id')->references('id')->on('products')->onDelete('cascade');
-            $table->foreign('attribute_id')->references('id')->on('attributes')->onDelete('set null');
         });
     }
 

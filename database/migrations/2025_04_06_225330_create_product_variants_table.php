@@ -11,9 +11,20 @@ return new class extends Migration
         Schema::create('product_variants', function (Blueprint $table) {
             $table->id();
             $table->foreignId('product_id')->constrained()->onDelete('cascade');
-            $table->string('color');
-            $table->string('tono')->nullable();
+
+            // Tipo de atributo: color, tono o ninguno
+            $table->enum('atributo_tipo', ['color', 'tono', 'ninguno'])->default('ninguno');
+
+            // Datos para el atributo tipo 'color'
+            $table->string('color')->nullable();              // Código hexadecimal
+            $table->string('nombre_color')->nullable();       // Nombre legible
+
+            // Datos para el atributo tipo 'tono'
+            $table->string('tono')->nullable();               // Código hexadecimal
+            $table->string('nombre_tono')->nullable();        // Nombre legible
+
             $table->integer('stock')->default(0);
+
             $table->timestamps();
         });
     }
