@@ -38,7 +38,6 @@ RUN composer install --no-interaction --optimize-autoloader --no-dev && \
     composer require laravel/octane --no-interaction && \
     php artisan octane:install --server=swoole && \
     npm install && npm run build && \
-    php artisan migrate --seed --force && \
     php artisan key:generate --force && \
     chown -R www-data:www-data /app && \
     chmod -R 775 storage bootstrap/cache
