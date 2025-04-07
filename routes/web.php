@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Frontend\ProductoController;
 use App\Http\Controllers\Frontend\CategoriaController;
+use App\Http\Controllers\Frontend\SearchController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,3 +26,10 @@ Route::get('/categoria/{slug}', [CategoriaController::class, 'show'])->name('cat
 // 📁 Productos por subcategoría (solo aplica a Maquillaje)
 Route::get('/categoria/{categoria_slug}/{subcategoria_slug}', [CategoriaController::class, 'subcategoria'])
     ->name('categoria.subcategoria');
+
+
+// Ruta API para búsqueda AJAX (autocompletar)
+Route::get('/api/buscar-productos', [SearchController::class, 'searchAPI']);
+
+// Página de resultados de búsqueda
+Route::get('/buscar', [SearchController::class, 'index'])->name('productos.buscar');
