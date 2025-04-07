@@ -82,6 +82,7 @@
     overflow: hidden;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
     position: relative;
+    cursor: pointer;
   }
   
   .main-image img {
@@ -91,6 +92,128 @@
     object-fit: contain;
     background-color: white;
     display: block;
+  }
+  
+  /* Lightbox para imágenes */
+  .lightbox {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+  }
+  
+  .lightbox.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  
+  .lightbox-content {
+    position: relative;
+    max-width: 90%;
+    max-height: 90%;
+  }
+  
+  .lightbox-image {
+    max-width: 100%;
+    max-height: 90vh;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+  }
+  
+  .lightbox-close {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 30px;
+    cursor: pointer;
+  }
+  
+  .lightbox-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 50px;
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 24px;
+    color: white;
+    border: none;
+    transition: background-color 0.3s;
+  }
+  
+  .lightbox-nav:hover {
+    background-color: rgba(255, 255, 255, 0.4);
+  }
+  
+  .lightbox-prev {
+    left: 20px;
+  }
+  
+  .lightbox-next {
+    right: 20px;
+  }
+  
+  /* Contador de imágenes en lightbox */
+  .lightbox-counter {
+    position: absolute;
+    bottom: -30px;
+    left: 0;
+    right: 0;
+    color: white;
+    text-align: center;
+    font-size: 14px;
+  }
+  
+  /* Navegación de imágenes en miniatura */
+  .gallery-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 30px;
+    height: 30px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 5;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    border: none;
+    font-size: 18px;
+    color: var(--accent-color);
+    transition: all 0.3s;
+  }
+  
+  .gallery-nav:hover {
+    background-color: var(--accent-color);
+    color: white;
+  }
+  
+  .gallery-prev {
+    left: 5px;
+  }
+  
+  .gallery-next {
+    right: 5px;
   }
   
   /* Información del producto */
@@ -166,12 +289,29 @@
     font-size: 0.9rem;
     font-weight: 500;
     transition: all 0.3s ease;
+    cursor: pointer;
   }
   
   .attribute-tag:hover {
     background-color: var(--accent-color);
     color: white;
     transform: translateY(-2px);
+  }
+  
+  .attribute-tag.active {
+    background-color: var(--accent-color);
+    color: white;
+  }
+  
+  /* Colores y Tonos */
+  .color-swatch {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    margin-right: 5px;
+    border: 1px solid #ddd;
+    vertical-align: middle;
   }
   
   /* Stock */
@@ -398,13 +538,50 @@
 <div class="product-page">
   <section class="max-w-7xl mx-auto py-10 px-4" x-data="{
       active: 0,
-      currentAttribute: null,
-      setAttribute(attrId) {
-        this.currentAttribute = attrId;
-        this.active = 0;
+      currentVariant: null,
+      showLightbox: false,
+      lightboxIndex: 0,
+      // Crear un array con todas las imágenes
+      images: [
+        '{{ asset('storage/' . $producto->image) }}',
+        @foreach($producto->images as $img)
+          '{{ asset('storage/' . $img->image_path) }}',
+        @endforeach
+      ],
+      // Métodos para la galería
+      setVariant(variantId, el) {
+        this.currentVariant = variantId;
+        
+        // Quitar clase active de todos los elementos
+        document.querySelectorAll('.attribute-tag').forEach(tag => {
+          tag.classList.remove('active');
+        });
+        
+        // Añadir clase active al elemento clickeado
+        if (el) {
+          el.classList.add('active');
+        }
       },
-      isVisibleImage(index, attrId) {
-        return this.currentAttribute === null || this.currentAttribute === attrId;
+      nextImage() {
+        this.active = (this.active + 1) % this.images.length;
+      },
+      prevImage() {
+        this.active = (this.active - 1 + this.images.length) % this.images.length;
+      },
+      openLightbox(index) {
+        this.lightboxIndex = index;
+        this.showLightbox = true;
+        document.body.style.overflow = 'hidden';
+      },
+      closeLightbox() {
+        this.showLightbox = false;
+        document.body.style.overflow = '';
+      },
+      nextLightboxImage() {
+        this.lightboxIndex = (this.lightboxIndex + 1) % this.images.length;
+      },
+      prevLightboxImage() {
+        this.lightboxIndex = (this.lightboxIndex - 1 + this.images.length) % this.images.length;
       }
     }">
     <div class="product-container">
@@ -413,29 +590,31 @@
         <div class="gallery-container">
           <div class="thumbnail-grid">
             <!-- Imagen principal -->
-            <div class="thumbnail" :class="{ 'active': active === 0 }" @click="active = 0" x-show="currentAttribute === null">
+            <div class="thumbnail" :class="{ 'active': active === 0 }" @click="active = 0">
               <img src="{{ asset('storage/' . $producto->image) }}" alt="{{ $producto->name }}">
             </div>
-            <!-- Miniaturas con atributo -->
+            
+            <!-- Todas las imágenes adicionales -->
             @foreach ($producto->images as $index => $img)
-              <div class="thumbnail"
-                   x-show="isVisibleImage({{ $index + 1 }}, {{ $img->attribute_id ?? 'null' }})"
-                   :class="{ 'active': active === {{ $index + 1 }} }"
-                   @click="active = {{ $index + 1 }}">
-                <img src="{{ asset('storage/' . $img->image_path) }}" alt="Miniatura">
+              <div class="thumbnail" :class="{ 'active': active === {{ $index + 1 }} }" @click="active = {{ $index + 1 }}">
+                <img src="{{ asset('storage/' . $img->image_path) }}" alt="Imagen {{ $index + 1 }}">
               </div>
             @endforeach
           </div>
 
-          <div class="main-image">
-            <template x-if="active === 0 && currentAttribute === null">
-              <img src="{{ asset('storage/' . $producto->image) }}" alt="{{ $producto->name }}">
+          <div class="main-image" @click="openLightbox(active)">
+            <!-- Navegación de la galería -->
+            <button class="gallery-nav gallery-prev" @click.stop="prevImage()">←</button>
+            <button class="gallery-nav gallery-next" @click.stop="nextImage()">→</button>
+            
+            <!-- Imagen principal mostrada -->
+            <template x-for="(src, index) in images" :key="index">
+              <img 
+                :src="src" 
+                :alt="index === 0 ? '{{ $producto->name }}' : 'Imagen ' + index"
+                x-show="active === index"
+                style="transition: opacity 0.3s ease;">
             </template>
-            @foreach ($producto->images as $index => $img)
-              <template x-if="active === {{ $index + 1 }}">
-                <img src="{{ asset('storage/' . $img->image_path) }}" alt="Imagen relacionada">
-              </template>
-            @endforeach
           </div>
         </div>
 
@@ -448,19 +627,40 @@
             {{ number_format($producto->price, 0, ',', '.') }}
           </div>
 
-          <!-- Atributos -->
-          @if ($atributos->count())
+          <!-- Colores (Tipo de atributo: color) -->
+          @php
+            $colorVariants = $producto->variants->where('atributo_tipo', 'color');
+          @endphp
+          @if ($colorVariants->count() > 0)
+            <div class="attributes-container">
+              <h3 class="attributes-title">Colores disponibles:</h3>
+              <div class="attributes-list">
+                <span class="attribute-tag active" @click="setVariant(null, $event.currentTarget)">Todos</span>
+                @foreach ($colorVariants as $variant)
+                  <span class="attribute-tag" @click="setVariant('{{ $variant->id }}', $event.currentTarget)">
+                    <span class="color-swatch" style="background-color: {{ $variant->color }};"></span>
+                    {{ $variant->nombre_color }}
+                    ({{ $variant->stock }} disponibles)
+                  </span>
+                @endforeach
+              </div>
+            </div>
+          @endif
+
+          <!-- Tonos (Tipo de atributo: tono) -->
+          @php
+            $tonoVariants = $producto->variants->where('atributo_tipo', 'tono');
+          @endphp
+          @if ($tonoVariants->count() > 0)
             <div class="attributes-container">
               <h3 class="attributes-title">Tonos disponibles:</h3>
               <div class="attributes-list">
-                <span class="attribute-tag" @click="setAttribute(null)">Todos</span>
-                @foreach ($atributos as $attr)
-                  <span class="attribute-tag" @click="setAttribute({{ $attr->id }})">
-                    {{ $attr->name }}
-                    @php
-                      $stock = $producto->attributes->firstWhere('id', $attr->id)?->pivot->stock;
-                    @endphp
-                    ({{ $stock ?? 0 }} disponibles)
+                <span class="attribute-tag active" @click="setVariant(null, $event.currentTarget)">Todos</span>
+                @foreach ($tonoVariants as $variant)
+                  <span class="attribute-tag" @click="setVariant('{{ $variant->id }}', $event.currentTarget)">
+                    <span class="color-swatch" style="background-color: {{ $variant->tono }};"></span>
+                    {{ $variant->nombre_tono }}
+                    ({{ $variant->stock }} disponibles)
                   </span>
                 @endforeach
               </div>
@@ -468,9 +668,13 @@
           @endif
 
           <!-- Stock general -->
-          @if ($producto->stock > 0)
+          @php
+            $totalStock = $producto->variants->sum('stock');
+          @endphp
+          
+          @if ($totalStock > 0)
             <div class="stock-info stock-available">
-              ✅ Disponible: {{ $producto->stock }} unidades
+              ✅ Disponible: {{ $totalStock }} unidades en total
             </div>
           @else
             <div class="stock-info stock-unavailable">
@@ -479,10 +683,31 @@
           @endif
 
           <!-- Botón agregar -->
-          <button class="cart-button">
+          <button class="cart-button" @click="addToCart($el, '{{ $producto->id }}', currentVariant)">
             🛒 Agregar al carrito
           </button>
         </div>
+      </div>
+    </div>
+    
+    <!-- Lightbox para ver imágenes en grande -->
+    <div class="lightbox" :class="{ 'active': showLightbox }" @click="closeLightbox()">
+      <div class="lightbox-content" @click.stop>
+        <button class="lightbox-close" @click="closeLightbox()">&times;</button>
+        
+        <template x-for="(src, index) in images" :key="index">
+          <img 
+            :src="src" 
+            :alt="'Imagen en grande ' + index" 
+            class="lightbox-image"
+            x-show="lightboxIndex === index"
+            style="transition: opacity 0.3s ease;">
+        </template>
+        
+        <button class="lightbox-nav lightbox-prev" @click.stop="prevLightboxImage()">←</button>
+        <button class="lightbox-nav lightbox-next" @click.stop="nextLightboxImage()">→</button>
+        
+        <div class="lightbox-counter" x-text="(lightboxIndex + 1) + ' / ' + images.length"></div>
       </div>
     </div>
   </section>
@@ -491,7 +716,7 @@
   <section class="related-products max-w-7xl mx-auto px-4">
     <h2 class="related-title">
       <span class="related-title-emoji">💖</span>
-      Productos que te pueden interesar
+      Productos similares
       <span class="related-title-emoji">💖</span>
     </h2>
     <div class="slider-container" x-data="{
@@ -526,4 +751,37 @@
     </div>
   </section>
 </div>
+
+<script>
+  function addToCart(element, productId, variantId) {
+    // Implementa la lógica de agregar al carrito
+    console.log('Producto añadido:', productId, 'Variante:', variantId);
+    
+    // Aquí podrías hacer una petición AJAX para añadir al carrito
+    // Por ejemplo:
+    /*
+    fetch('/carrito/agregar', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+      },
+      body: JSON.stringify({
+        producto_id: productId,
+        variante_id: variantId
+      })
+    })
+    .then(response => response.json())
+    .then(data => {
+      // Actualizar interfaz
+    });
+    */
+    
+    // Por ahora, solo mostraremos un mensaje visual temporal
+    element.textContent = '✅ ¡Añadido!';
+    setTimeout(() => {
+      element.innerHTML = '🛒 Agregar al carrito';
+    }, 2000);
+  }
+</script>
 @endsection
