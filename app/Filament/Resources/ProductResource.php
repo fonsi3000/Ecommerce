@@ -5,6 +5,7 @@ namespace App\Filament\Resources;
 use App\Filament\Resources\ProductResource\Pages;
 use App\Filament\Resources\ProductResource\RelationManagers\VariantsRelationManager;
 use App\Models\Product;
+use App\Models\Category;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Forms\Components\Select;
@@ -24,21 +25,32 @@ class ProductResource extends Resource
 {
     protected static ?string $model = Product::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    // Cambio de icono a bolsa de compras
+    protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
 
     public static function form(Form $form): Form
     {
+        // Obtener el ID de la categoría "Maquillaje"
+        $maquillajeId = Category::where('name', 'Maquillaje')->first()?->id;
+
         return $form->schema([
             Select::make('category_id')
                 ->label('Categoría')
                 ->relationship('category', 'name')
                 ->live()
-                ->required(),
+                ->required()
+                ->afterStateUpdated(function ($state, callable $set) use ($maquillajeId) {
+                    // Si no es la categoría maquillaje, limpiamos la subcategoría
+                    if ($state != $maquillajeId) {
+                        $set('sub_category_id', null);
+                    }
+                }),
 
             Select::make('sub_category_id')
                 ->label('Subcategoría')
                 ->relationship('subCategory', 'name')
-                ->disabled(fn(callable $get) => !$get('category_id'))
+                // Solo habilitado para categoría maquillaje
+                ->disabled(fn(callable $get) => $get('category_id') != $maquillajeId)
                 ->nullable(),
 
             TextInput::make('name')

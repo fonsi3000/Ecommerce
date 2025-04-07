@@ -20,15 +20,18 @@ class ProductImageResource extends Resource
 {
     protected static ?string $model = ProductImage::class;
 
-    protected static ?string $navigationIcon = 'heroicon-o-rectangle-stack';
+    protected static ?string $navigationIcon = 'heroicon-o-photo';
 
     public static function form(Form $form): Form
     {
         return $form->schema([
-            // Selección del producto por su nombre
+            // Selección del producto por su nombre con búsqueda
             Select::make('product_id')
                 ->label('Producto')
                 ->relationship('product', 'name')
+                ->searchable() // Habilita la búsqueda
+                ->preload() // Precarga algunos productos
+                ->placeholder('Busca un producto por nombre...')
                 ->required(),
 
             // FileUpload para subir la imagen
