@@ -1,3 +1,16 @@
+# Etapa 1: Construcción de frontend con Node
+FROM node:18 as frontend
+
+WORKDIR /app
+
+# Copia solo lo necesario para el build
+COPY package.json package-lock.json vite.config.js ./
+COPY resources ./resources
+COPY public ./public
+
+RUN npm install && npm run build
+
+# Etapa 2: PHP + Laravel + Swoole
 FROM php:8.2-cli
 
 ENV TZ=America/Bogota
@@ -14,12 +27,10 @@ RUN apt-get update && apt-get install -y \
     unzip \
     libbrotli-dev \
     pkg-config \
-    libicu-dev
+    libicu-dev \
+    supervisor
 
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Configura git para el directorio
-RUN git config --global --add safe.directory /var/www/html
 
 # Instala extensiones PHP
 RUN docker-php-ext-install \
@@ -41,26 +52,27 @@ RUN pecl install swoole && \
 # Instala Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Configura el directorio de trabajo
+# Define directorio de la app
 WORKDIR /var/www/html
 
-# Copia los archivos de la aplicación
+# Copia el proyecto Laravel
 COPY . .
 
-# Configura permisos
-RUN chown -R www-data:www-data /var/www/html && \
-    chmod -R 755 /var/www/html
+# Copia assets compilados desde etapa Node
+COPY --from=frontend /app/public/build public/build
 
-# Instala dependencias de Laravel como www-data
+# Asigna permisos a Laravel
+RUN chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html && \
+    chmod -R 775 storage bootstrap/cache
+
+# Instala dependencias y corre migraciones + seeders
 USER www-data
-RUN composer install --no-interaction --optimize-autoloader --no-dev && \
-    composer require laravel/octane && \
-    php artisan octane:install --server=swoole
+RUN composer install --no-dev --optimize-autoloader && \
+    php artisan octane:install --server=swoole && \
+    php artisan migrate --seed --force
 
 USER root
-
-# Configura permisos adicionales
-RUN chmod -R 755 storage bootstrap/cache
 
 EXPOSE 7070
 
