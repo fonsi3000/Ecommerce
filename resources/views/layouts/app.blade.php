@@ -24,7 +24,11 @@
 
     {{-- Scripts empujados dinámicamente --}}
     @stack('scripts')
-    <script src="//unpkg.com/alpinejs" defer></script>
+    <!-- Después tu cart.js -->
+    <script defer src="{{ asset('js/cart.js') }}"></script>
+    <!-- Primero Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
 
 </body>
 </html>

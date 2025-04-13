@@ -3,6 +3,12 @@
 @section('title', $producto->name)
 
 @section('content')
+{{-- Definir $totalStock al inicio de la vista para que esté disponible en toda la plantilla --}}
+@php
+  $totalStock = $producto->variants->sum('stock');
+  $colorVariants = $producto->variants->where('atributo_tipo', 'color');
+  $tonoVariants = $producto->variants->where('atributo_tipo', 'tono');
+@endphp
 <style>
   .product-page {
     --accent-color: #ff4d94;
@@ -532,58 +538,158 @@
     }
   }
 
-  /* Se mantienen todos los estilos de tu versión anterior */
+  /* Estilos para el selector de cantidad */
+  .custom-number-input input:focus {
+    outline: none !important;
+  }
+
+  .custom-number-input button:focus {
+    outline: none !important;
+  }
+
+  .custom-number-input input[type=number]::-webkit-inner-spin-button,
+  .custom-number-input input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  .custom-number-input input[type=number] {
+    -moz-appearance: textfield;
+  }
+
+  /* Botón deshabilitado */
+  .cart-button:disabled {
+    background-color: #cccccc;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
 </style>
 
 <div class="product-page">
   <section class="max-w-7xl mx-auto py-10 px-4" x-data="{
-      active: 0,
-      currentVariant: null,
-      showLightbox: false,
-      lightboxIndex: 0,
-      // Crear un array con todas las imágenes
-      images: [
-        '{{ asset('storage/' . $producto->image) }}',
-        @foreach($producto->images as $img)
-          '{{ asset('storage/' . $img->image_path) }}',
-        @endforeach
-      ],
-      // Métodos para la galería
-      setVariant(variantId, el) {
-        this.currentVariant = variantId;
-        
-        // Quitar clase active de todos los elementos
-        document.querySelectorAll('.attribute-tag').forEach(tag => {
-          tag.classList.remove('active');
-        });
-        
-        // Añadir clase active al elemento clickeado
-        if (el) {
-          el.classList.add('active');
-        }
-      },
-      nextImage() {
-        this.active = (this.active + 1) % this.images.length;
-      },
-      prevImage() {
-        this.active = (this.active - 1 + this.images.length) % this.images.length;
-      },
-      openLightbox(index) {
-        this.lightboxIndex = index;
-        this.showLightbox = true;
-        document.body.style.overflow = 'hidden';
-      },
-      closeLightbox() {
-        this.showLightbox = false;
-        document.body.style.overflow = '';
-      },
-      nextLightboxImage() {
-        this.lightboxIndex = (this.lightboxIndex + 1) % this.images.length;
-      },
-      prevLightboxImage() {
-        this.lightboxIndex = (this.lightboxIndex - 1 + this.images.length) % this.images.length;
+    active: 0,
+    selectedVariant: null,
+    quantity: 1,
+    variantStock: 0,
+    showLightbox: false,
+    lightboxIndex: 0,
+    // Crear un array con todas las imágenes
+    images: [
+      '{{ asset('storage/' . $producto->image) }}',
+      @foreach($producto->images as $img)
+        '{{ asset('storage/' . $img->image_path) }}',
+      @endforeach
+    ],
+    // Array de variantes para acceder a sus propiedades
+    variants: [
+      @foreach($producto->variants as $variant)
+        {
+          id: {{ $variant->id }},
+          tipo: '{{ $variant->atributo_tipo }}',
+          nombre: '{{ $variant->atributo_tipo == 'color' ? $variant->nombre_color : $variant->nombre_tono }}',
+          stock: {{ $variant->stock }}
+        },
+      @endforeach
+    ],
+    // Métodos para la galería
+    updateSelectedVariant(el) {
+      // Quitar clase active de todos los elementos
+      document.querySelectorAll('.attribute-tag').forEach(tag => {
+        tag.classList.remove('active');
+      });
+      
+      // Añadir clase active al elemento clickeado
+      if (el) {
+        el.classList.add('active');
       }
-    }">
+      
+      // Actualizar el stock de la variante seleccionada
+      if (this.selectedVariant === null) {
+        this.variantStock = {{ $totalStock }};
+      } else {
+        const variant = this.variants.find(v => v.id === this.selectedVariant);
+        this.variantStock = variant ? variant.stock : 0;
+      }
+      
+      // Ajustar la cantidad si es mayor que el stock disponible
+      if (this.quantity > this.variantStock) {
+        this.quantity = this.variantStock > 0 ? this.variantStock : 1;
+      }
+    },
+
+    addToCart() {
+  console.log('Intentando agregar al carrito');
+  
+  // Validar stock antes de agregar
+  if ((this.selectedVariant && this.variantStock <= 0) || 
+      (!this.selectedVariant && {{ $totalStock <= 0 ? 'true' : 'false' }})) {
+    return;
+  }
+  
+  // Obtenemos la información del producto
+  const variantName = this.selectedVariant ? this.variants.find(v => v.id === this.selectedVariant).nombre : null;
+  
+  // Creamos el objeto del producto para agregar al carrito
+  const producto = {
+    id: {{ $producto->id }},
+    name: '{{ $producto->name }}' + (variantName ? ` - ${variantName}` : ''),
+    price: {{ $producto->price }},
+    image: '{{ $producto->image }}',
+    quantity: this.quantity,
+    variant_id: this.selectedVariant
+  };
+  
+  console.log('Producto a agregar:', producto);
+  
+  // Usar Alpine directamente para agregar al carrito y abrir el modal
+  if (typeof Alpine !== 'undefined' && Alpine.store) {
+    let cartStore = Alpine.store('cart');
+    cartStore.addItem(producto);
+    
+    // Forzar la apertura del modal directamente
+    cartStore.isOpen = true;
+    
+    // Emitir un evento que pueda ser capturado desde otros componentes
+    window.dispatchEvent(new CustomEvent('open-cart-modal'));
+    
+    // Feedback visual
+    const button = this.$el;
+    const originalText = button.innerHTML;
+    button.innerHTML = '✅ ¡Añadido!';
+    
+    setTimeout(() => {
+      button.innerHTML = originalText;
+    }, 2000);
+  } else {
+    console.error('El store del carrito no está disponible');
+  }
+},
+    nextImage() {
+      this.active = (this.active + 1) % this.images.length;
+    },
+    prevImage() {
+      this.active = (this.active - 1 + this.images.length) % this.images.length;
+    },
+    openLightbox(index) {
+      this.lightboxIndex = index;
+      this.showLightbox = true;
+      document.body.style.overflow = 'hidden';
+    },
+    closeLightbox() {
+      this.showLightbox = false;
+      document.body.style.overflow = '';
+    },
+    nextLightboxImage() {
+      this.lightboxIndex = (this.lightboxIndex + 1) % this.images.length;
+    },
+    prevLightboxImage() {
+      this.lightboxIndex = (this.lightboxIndex - 1 + this.images.length) % this.images.length;
+    },
+    init() {
+      // Inicializar el stock total
+      this.variantStock = {{ $totalStock }};
+    }
+  }">
     <div class="product-container">
       <div class="grid md:grid-cols-2 gap-8 items-start">
         <!-- Galería -->
@@ -635,9 +741,15 @@
             <div class="attributes-container">
               <h3 class="attributes-title">Colores disponibles:</h3>
               <div class="attributes-list">
-                <span class="attribute-tag active" @click="setVariant(null, $event.currentTarget)">Todos</span>
+                <span class="attribute-tag" 
+                      :class="{ 'active': selectedVariant === null }" 
+                      @click="selectedVariant = null; updateSelectedVariant($event.currentTarget)">
+                  Todos
+                </span>
                 @foreach ($colorVariants as $variant)
-                  <span class="attribute-tag" @click="setVariant('{{ $variant->id }}', $event.currentTarget)">
+                  <span class="attribute-tag" 
+                        :class="{ 'active': selectedVariant === {{ $variant->id }} }"
+                        @click="selectedVariant = {{ $variant->id }}; updateSelectedVariant($event.currentTarget)">
                     <span class="color-swatch" style="background-color: {{ $variant->color }};"></span>
                     {{ $variant->nombre_color }}
                     ({{ $variant->stock }} disponibles)
@@ -655,9 +767,15 @@
             <div class="attributes-container">
               <h3 class="attributes-title">Tonos disponibles:</h3>
               <div class="attributes-list">
-                <span class="attribute-tag active" @click="setVariant(null, $event.currentTarget)">Todos</span>
+                <span class="attribute-tag" 
+                      :class="{ 'active': selectedVariant === null }" 
+                      @click="selectedVariant = null; updateSelectedVariant($event.currentTarget)">
+                  Todos
+                </span>
                 @foreach ($tonoVariants as $variant)
-                  <span class="attribute-tag" @click="setVariant('{{ $variant->id }}', $event.currentTarget)">
+                  <span class="attribute-tag" 
+                        :class="{ 'active': selectedVariant === {{ $variant->id }} }"
+                        @click="selectedVariant = {{ $variant->id }}; updateSelectedVariant($event.currentTarget)">
                     <span class="color-swatch" style="background-color: {{ $variant->tono }};"></span>
                     {{ $variant->nombre_tono }}
                     ({{ $variant->stock }} disponibles)
@@ -672,18 +790,54 @@
             $totalStock = $producto->variants->sum('stock');
           @endphp
           
-          @if ($totalStock > 0)
-            <div class="stock-info stock-available">
-              ✅ Disponible: {{ $totalStock }} unidades en total
+          <div class="stock-info" :class="selectedVariant ? 'stock-available' : '{{ $totalStock > 0 ? 'stock-available' : 'stock-unavailable' }}'">
+            <template x-if="selectedVariant && variantStock > 0">
+              <span>✅ Disponible: <span x-text="variantStock"></span> unidades</span>
+            </template>
+            <template x-if="selectedVariant && variantStock <= 0">
+              <span>❌ Variante agotada</span>
+            </template>
+            <template x-if="!selectedVariant">
+              @if ($totalStock > 0)
+                <span>✅ Disponible: {{ $totalStock }} unidades en total</span>
+              @else
+                <span>❌ Agotado</span>
+              @endif
+            </template>
+          </div>
+
+          <!-- Selector de cantidad -->
+          <div class="flex items-center mb-6 mt-4">
+            <span class="text-gray-700 font-medium mr-4">Cantidad:</span>
+            <div class="custom-number-input flex h-10 w-32">
+              <button @click="quantity > 1 ? quantity-- : null" 
+                      class="bg-gray-200 text-gray-600 hover:text-gray-700 hover:bg-gray-300 h-full w-10 rounded-l cursor-pointer outline-none flex items-center justify-center">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4"/>
+                </svg>
+              </button>
+              <input type="number" 
+                     x-model.number="quantity" 
+                     min="1" 
+                     :max="selectedVariant ? variantStock : {{ $totalStock }}"
+                     class="outline-none focus:outline-none text-center w-full bg-gray-100 font-semibold text-md text-gray-700 flex items-center" 
+                     name="custom-input-number">
+              <button @click="quantity++" 
+                      :disabled="selectedVariant ? quantity >= variantStock : quantity >= {{ $totalStock }}"
+                      :class="{ 'opacity-50 cursor-not-allowed': selectedVariant ? quantity >= variantStock : quantity >= {{ $totalStock }} }"
+                      class="bg-gray-200 text-gray-600 hover:text-gray-700 hover:bg-gray-300 h-full w-10 rounded-r cursor-pointer flex items-center justify-center">
+                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+              </button>
             </div>
-          @else
-            <div class="stock-info stock-unavailable">
-              ❌ Agotado
-            </div>
-          @endif
+          </div>
 
           <!-- Botón agregar -->
-          <button class="cart-button" @click="addToCart($el, '{{ $producto->id }}', currentVariant)">
+          <button class="cart-button" 
+                  @click="addToCart()"
+                  :disabled="(selectedVariant && variantStock <= 0) || (!selectedVariant && {{ $totalStock <= 0 ? 'true' : 'false' }})"
+                  :class="{ 'opacity-50 cursor-not-allowed': (selectedVariant && variantStock <= 0) || (!selectedVariant && {{ $totalStock <= 0 ? 'true' : 'false' }}) }">
             🛒 Agregar al carrito
           </button>
         </div>
@@ -726,62 +880,31 @@
         prev() { this.currentSlide = (this.currentSlide - 1 + this.slidesCount) % this.slidesCount },
         init() { setInterval(() => this.next(), 5000) }
     }">
-      <template x-if="slidesCount > 1">
-        <div>
-          <button class="slider-arrow prev" @click="prev">←</button>
-          <button class="slider-arrow next" @click="next">→</button>
-        </div>
-      </template>
-
-      <div class="slider-track" :style="'transform: translateX(-' + (currentSlide * 100) + '%)'">
-        @foreach ($relacionados as $r)
-          <div class="slider-item">
-            @include('components.product-card', ['producto' => $r])
-          </div>
-        @endforeach
+    <template x-if="slidesCount > 1">
+      <div>
+        <button class="slider-arrow prev" @click="prev">←</button>
+        <button class="slider-arrow next" @click="next">→</button>
       </div>
+    </template>
 
-      <template x-if="slidesCount > 1">
-        <div class="pagination-dots">
-          <template x-for="i in slidesCount" :key="i">
-            <span class="pagination-dot" :class="{ 'active': currentSlide === i - 1 }" @click="currentSlide = i - 1"></span>
-          </template>
+    <div class="slider-track" :style="'transform: translateX(-' + (currentSlide * 100) + '%)'">
+      @foreach ($relacionados as $r)
+        <div class="slider-item">
+          @include('components.product-card', ['producto' => $r])
         </div>
-      </template>
+      @endforeach
     </div>
-  </section>
+
+    <template x-if="slidesCount > 1">
+      <div class="pagination-dots">
+        <template x-for="i in slidesCount" :key="i">
+          <span class="pagination-dot" :class="{ 'active': currentSlide === i - 1 }" @click="currentSlide = i - 1"></span>
+        </template>
+      </div>
+    </template>
+  </div>
+</section>
 </div>
 
-<script>
-  function addToCart(element, productId, variantId) {
-    // Implementa la lógica de agregar al carrito
-    console.log('Producto añadido:', productId, 'Variante:', variantId);
-    
-    // Aquí podrías hacer una petición AJAX para añadir al carrito
-    // Por ejemplo:
-    /*
-    fetch('/carrito/agregar', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-      },
-      body: JSON.stringify({
-        producto_id: productId,
-        variante_id: variantId
-      })
-    })
-    .then(response => response.json())
-    .then(data => {
-      // Actualizar interfaz
-    });
-    */
-    
-    // Por ahora, solo mostraremos un mensaje visual temporal
-    element.textContent = '✅ ¡Añadido!';
-    setTimeout(() => {
-      element.innerHTML = '🛒 Agregar al carrito';
-    }, 2000);
-  }
-</script>
+<!-- Eliminamos el script anterior para usar el Store de Alpine.js -->
 @endsection

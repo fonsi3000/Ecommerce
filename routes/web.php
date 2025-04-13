@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Frontend\CartController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Frontend\ProductoController;
 use App\Http\Controllers\Frontend\CategoriaController;
@@ -33,3 +34,9 @@ Route::get('/api/buscar-productos', [SearchController::class, 'searchAPI']);
 
 // Página de resultados de búsqueda
 Route::get('/buscar', [SearchController::class, 'index'])->name('productos.buscar');
+
+Route::get('/carrito', [CartController::class, 'index'])->name('carrito');
+
+Route::post('/carrito/info-productos', [CartController::class, 'productsInfo'])->name('cart.products.info');
+
+Route::post('/carrito/validar-stock', [CartController::class, 'validateStock'])->name('cart.validate.stock');
