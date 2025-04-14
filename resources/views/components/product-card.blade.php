@@ -130,13 +130,5 @@
     <div class="product-details">
       <h2 class="product-name">{{ $producto->name }}</h2>
       <p class="product-price">${{ number_format($producto->price, 0, ',', '.') }}</p>
-      <div class="add-to-cart">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M9 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"></path>
-          <path d="M16 20a1 1 0 1 0 0-2 1 1 0 0 0 0 2z"></path>
-          <path d="M3 3h2l2 14h11"></path>
-          <path d="M11 7h8l-2 8H9"></path>
-        </svg>
-      </div>
     </div>
   </a>

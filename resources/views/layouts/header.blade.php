@@ -357,7 +357,7 @@
                             </button>
                             
                             <button 
-                                @click="window.location.href='{{ route('carrito') }}'" 
+                                @click="window.location.href='{{ route('checkout') }}'" 
                                 class="px-4 py-2 bg-pink-500 text-white rounded-md hover:bg-pink-600 transition-colors font-medium">
                                 Finalizar compra
                             </button>
