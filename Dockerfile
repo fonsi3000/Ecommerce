@@ -36,11 +36,25 @@ COPY . .
 # 👷 Prepara Laravel, Vite y Octane
 RUN composer install --no-interaction --optimize-autoloader --no-dev && \
     composer require laravel/octane --no-interaction && \
-    php artisan octane:install --server=swoole && \
-    npm install && npm run build && \
-    php artisan key:generate --force && \
+    php artisan octane:install --server=swoole
+
+# 🖼️ Prepara archivos estáticos y optimiza imágenes
+RUN npm install && \
+    npm run build && \
+    # Asegura que las carpetas de imágenes tengan los permisos correctos
+    mkdir -p public/images && \
+    mkdir -p storage/app/public && \
+    # Crea el enlace simbólico para archivos públicos
+    php artisan storage:link && \
+    # Optimiza caché de rutas y configuración
+    php artisan route:cache && \
+    php artisan config:cache && \
+    php artisan view:cache
+
+# 🔑 Genera clave y establece permisos
+RUN php artisan key:generate --force && \
     chown -R www-data:www-data /app && \
-    chmod -R 775 storage bootstrap/cache
+    chmod -R 775 storage bootstrap/cache public/images
 
 # 🚀 Comando final para correr Octane en puerto 7070
 CMD ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=7070", "--workers=4", "--task-workers=2"]
