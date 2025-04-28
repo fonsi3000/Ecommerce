@@ -62,30 +62,49 @@ document.addEventListener('alpine:init', () => {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': this.getCsrfToken()
+                        'Accept': 'application/json',
+                        'X-CSRF-TOKEN': this.getCsrfToken(),
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     body: JSON.stringify({ ids: productIds })
                 })
-                .then(res => res.json())
+                .then(res => {
+                    if (!res.ok) {
+                        throw new Error(`Error del servidor: ${res.status}`);
+                    }
+                    return res.json();
+                })
                 .then(products => {
                     this.stockInfo = {};
                     products.forEach(product => {
-                        if (product.variants && product.variants.length > 0) {
-                            const variantStocks = {};
-                            product.variants.forEach(variant => {
-                                variantStocks[variant.id] = variant.stock;
+                        const stockData = {
+                            name: product.name,
+                            stock: product.stock
+                        };
+
+                        // Si el producto tiene variantes
+                        if (product.variants && Object.keys(product.variants).length > 0) {
+                            stockData.variantStocks = {};
+                            
+                            // Procesar cada variante
+                            Object.keys(product.variants).forEach(variantId => {
+                                // Si es un objeto con info adicional
+                                if (typeof product.variants[variantId] === 'object') {
+                                    stockData.variantStocks[variantId] = product.variants[variantId].stock;
+                                    
+                                    // Si es una variante "sin atributo", guardamos su info
+                                    if (product.variants[variantId].atributo_tipo === 'ninguno') {
+                                        stockData.noAttributeVariantId = variantId;
+                                        stockData.noAttributeStock = product.variants[variantId].stock;
+                                    }
+                                } else {
+                                    // Si es directamente el valor del stock
+                                    stockData.variantStocks[variantId] = product.variants[variantId];
+                                }
                             });
-                            this.stockInfo[product.id] = {
-                                name: product.name,
-                                stock: product.stock,
-                                variantStocks: variantStocks
-                            };
-                        } else {
-                            this.stockInfo[product.id] = {
-                                name: product.name,
-                                stock: product.stock
-                            };
                         }
+                        
+                        this.stockInfo[product.id] = stockData;
                     });
                     this.validateAllQuantities();
                     this.loadingStock = false;
@@ -103,9 +122,23 @@ document.addEventListener('alpine:init', () => {
                     const productStock = this.stockInfo[item.id];
                     if (!productStock) return;
 
-                    let availableStock = item.variant_id && productStock.variantStocks
-                        ? productStock.variantStocks[item.variant_id] || 0
-                        : productStock.stock || 0;
+                    let availableStock;
+                    
+                    // Si el item tiene variante específica y existe información de esa variante
+                    if (item.variant_id && productStock.variantStocks && productStock.variantStocks[item.variant_id]) {
+                        availableStock = productStock.variantStocks[item.variant_id];
+                    } 
+                    // Si el item no tiene variante pero hay una variante "sin atributo"
+                    else if (!item.variant_id && productStock.noAttributeVariantId) {
+                        availableStock = productStock.noAttributeStock;
+                        // Asignar la variante "sin atributo" al item
+                        item.variant_id = productStock.noAttributeVariantId;
+                        cartChanged = true;
+                    }
+                    // Caso de producto sin variantes
+                    else {
+                        availableStock = productStock.stock || 0;
+                    }
 
                     if (item.quantity > availableStock) {
                         const oldQty = item.quantity;
@@ -170,23 +203,46 @@ document.addEventListener('alpine:init', () => {
 
             hasEnoughStock(id, variantId, qty) {
                 if (!this.stockInfo[id]) return true;
-                const stock = variantId && this.stockInfo[id].variantStocks
-                    ? this.stockInfo[id].variantStocks[variantId] || 0
-                    : this.stockInfo[id].stock || 0;
-                return qty <= stock;
+                
+                // Si hay variante especificada y el producto tiene información de variantes
+                if (variantId && this.stockInfo[id].variantStocks) {
+                    return qty <= (this.stockInfo[id].variantStocks[variantId] || 0);
+                } 
+                // Si hay una variante "sin atributo" y no se especificó una variante
+                else if (!variantId && this.stockInfo[id].noAttributeVariantId) {
+                    return qty <= (this.stockInfo[id].noAttributeStock || 0);
+                }
+                // Caso de producto sin variante - verificar stock principal
+                else {
+                    return qty <= (this.stockInfo[id].stock || 0);
+                }
             },
 
             getAvailableStock(id, variantId) {
                 if (!this.stockInfo[id]) return 999;
+                
+                // Si hay variante especificada y el producto tiene información de variantes
                 if (variantId && this.stockInfo[id].variantStocks) {
-                    return this.stockInfo[id].variantStocks[variantId] || 0;
+                    return parseInt(this.stockInfo[id].variantStocks[variantId] || 0);
                 }
-                return this.stockInfo[id].stock || 0;
+                // Si hay una variante "sin atributo" y no se especificó una variante
+                else if (!variantId && this.stockInfo[id].noAttributeVariantId) {
+                    return parseInt(this.stockInfo[id].noAttributeStock || 0);
+                }
+                // Caso de producto sin variante - usar stock principal
+                else {
+                    return parseInt(this.stockInfo[id].stock || 0);
+                }
             },
 
             addItem(product) {
                 const key = product.variant_id ? `${product.id}-${product.variant_id}` : `${product.id}`;
                 const qty = parseInt(product.quantity) || 1;
+
+                // Si el producto no tiene variante pero hay variante "sin atributo" en el sistema
+                if (!product.variant_id && this.stockInfo[product.id] && this.stockInfo[product.id].noAttributeVariantId) {
+                    product.variant_id = this.stockInfo[product.id].noAttributeVariantId;
+                }
 
                 let availableStock = this.getAvailableStock(product.id, product.variant_id);
 
@@ -282,11 +338,28 @@ document.addEventListener('alpine:init', () => {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': this.getCsrfToken()
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': this.getCsrfToken(),
+                            'X-Requested-With': 'XMLHttpRequest'
                         },
                         body: JSON.stringify({ items: itemsToSend })
                     })
-                    .then(res => res.json())
+                    .then(res => {
+                        // Verificar si la respuesta es OK antes de intentar convertirla a JSON
+                        if (!res.ok) {
+                            return res.text().then(text => {
+                                // Intenta parsear el texto como JSON
+                                try {
+                                    return JSON.parse(text);
+                                } catch (e) {
+                                    // Si no es JSON, lanza un error con el texto
+                                    console.error("Respuesta no válida:", text);
+                                    throw new Error(`Error del servidor: ${res.status}. Respuesta no es JSON válido.`);
+                                }
+                            });
+                        }
+                        return res.json();
+                    })
                     .then(data => {
                         if (data.valid === true) {
                             window.location.href = '/checkout';
@@ -294,9 +367,20 @@ document.addEventListener('alpine:init', () => {
                         } else {
                             if (data.errors && data.errors.length > 0) {
                                 data.errors.forEach(err => {
-                                    const item = this.items.find(i =>
-                                        i.id === err.id && (!err.variant_id || i.variant_id === err.variant_id)
-                                    );
+                                    // Mejorado para encontrar correctamente tanto productos con variantes como sin ellas
+                                    const item = this.items.find(i => {
+                                        if (i.id === err.id) {
+                                            // Para productos con variante
+                                            if (err.variant_id) {
+                                                return i.variant_id === err.variant_id;
+                                            }
+                                            // Para productos sin variante
+                                            else {
+                                                return i.variant_id === null || i.variant_id === undefined;
+                                            }
+                                        }
+                                        return false;
+                                    });
 
                                     if (item) {
                                         item.quantity = Math.min(item.quantity, err.available_stock || 0);
@@ -306,13 +390,13 @@ document.addEventListener('alpine:init', () => {
                                 this.saveCart();
                                 reject('Hay productos con stock insuficiente en tu carrito');
                             } else {
-                                reject('La validación de stock falló. Intenta nuevamente.');
+                                reject(data.message || 'La validación de stock falló. Intenta nuevamente.');
                             }
                         }
                     })
                     .catch(err => {
                         console.error('Error en la validación:', err);
-                        alert(err.message || 'Error al validar disponibilidad de productos');
+                        alert(err.message || 'Error al validar disponibilidad de productos. Por favor, recarga la página e intenta de nuevo.');
                         reject(err.message || 'Error al validar disponibilidad de productos');
                     });
                 });
