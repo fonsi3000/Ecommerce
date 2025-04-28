@@ -54,7 +54,8 @@ RUN npm install && \
 # 🔑 Genera clave y establece permisos
 RUN php artisan key:generate --force && \
     chown -R www-data:www-data /app && \
-    chmod -R 775 storage bootstrap/cache public/images
+    chmod -R 775 storage bootstrap/cache public/images public/storage
+
 
 # 🚀 Comando final para correr Octane en puerto 7070
 CMD ["php", "artisan", "octane:start", "--server=swoole", "--host=0.0.0.0", "--port=7070", "--workers=4", "--task-workers=2"]
