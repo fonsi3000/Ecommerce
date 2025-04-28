@@ -35,11 +35,10 @@ Route::get('/api/buscar-productos', [SearchController::class, 'searchAPI']);
 // Página de resultados de búsqueda
 Route::get('/buscar', [SearchController::class, 'index'])->name('productos.buscar');
 
-// Carrito 
+// Carrito  
 Route::get('/carrito', [CartController::class, 'index'])->name('carrito');
 Route::post('/carrito/info-productos', [CartController::class, 'productsInfo'])->name('cart.products.info');
 Route::post('/carrito/validar-stock', [CartController::class, 'validateStock'])->name('cart.validate.stock');
-
 // Checkout - nuevas rutas
 Route::get('/checkout', [CheckoutController::class, 'index'])->name('checkout');
 Route::post('/checkout', [CheckoutController::class, 'store'])->name('checkout.store');
