@@ -155,7 +155,7 @@ class CheckoutController extends Controller
             $message .= "\n\n*TOTAL: $" . number_format($total, 0, ',', '.') . "*";
 
             // Número de WhatsApp al que se enviará el mensaje (incluir código de país)
-            $whatsappNumber = "573102394727"; // Reemplaza con tu número real
+            $whatsappNumber = "573011434336"; // Reemplaza con tu número real
 
             // Crear URL de WhatsApp con el mensaje
             $whatsappUrl = "https://wa.me/{$whatsappNumber}?text=" . urlencode($message);
