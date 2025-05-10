@@ -21,7 +21,7 @@ class Order extends Model
     ];
 
     /**
-     * Get all items for this order
+     * Relación con los ítems de la orden
      */
     public function items(): HasMany
     {
@@ -29,7 +29,7 @@ class Order extends Model
     }
 
     /**
-     * Calculate the total of the order from its items
+     * Calcular el total de la orden desde sus ítems
      */
     public function calculateTotal(): float
     {
@@ -37,12 +37,33 @@ class Order extends Model
     }
 
     /**
-     * Update the total of the order based on its items
+     * Actualizar el campo total con base en los ítems
      */
     public function updateTotal(): void
     {
         $this->update([
             'total' => $this->calculateTotal()
         ]);
+    }
+
+    /**
+     * Evento para manejar lógica al actualizar la orden
+     */
+    protected static function booted()
+    {
+        static::updating(function (Order $order) {
+            if ($order->isDirty('status') && $order->status === 'enviado') {
+                foreach ($order->items as $item) {
+                    // Si tiene variante, descuenta stock del variant
+                    if ($item->variant && $item->variant->stock >= $item->quantity) {
+                        $item->variant->decrement('stock', $item->quantity);
+                    }
+                    // Si no tiene variante, descuenta del producto directamente
+                    elseif ($item->product && $item->product->stock >= $item->quantity) {
+                        $item->product->decrement('stock', $item->quantity);
+                    }
+                }
+            }
+        });
     }
 }
