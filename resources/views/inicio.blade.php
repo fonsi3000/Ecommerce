@@ -27,7 +27,7 @@
 
             {{-- Botón Ver más --}}
             <div class="mt-10 flex justify-center">
-                {{ $productos->links() }}
+                {{ $productos->links('components.pagination-custom') }}
             </div>
         </div>
     </section>
