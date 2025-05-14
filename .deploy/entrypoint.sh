@@ -1,14 +1,14 @@
 #!/bin/sh
 
 echo "⏳ Esperando que MySQL esté disponible..."
-until nc -z registros_db 3306; do
+until nc -z expo_db 3306; do
   echo "MySQL aún no responde, reintentando..."
   sleep 2
 done
 echo "✅ MySQL disponible"
 
 echo "⏳ Esperando que Redis esté disponible..."
-until nc -z registros_redis 6379; do
+until nc -z expo_redis 6379; do
   echo "Redis aún no responde, reintentando..."
   sleep 2
 done

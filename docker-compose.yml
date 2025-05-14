@@ -2,44 +2,56 @@ version: '3.8'
 
 services:
   app:
-    build: .
-    container_name: expo_cosmeticos_app
-    ports:
-      - "7070:7070"
+    build:
+      context: .
+      dockerfile: .deploy/Dockerfile
+    container_name: expo_app
+    environment:
+      APP_ENV: ${APP_ENV}
+      APP_KEY: ${APP_KEY}
+      APP_DEBUG: ${APP_DEBUG}
+      APP_URL: ${APP_URL}
     volumes:
       - .:/var/www/html
-      - /var/www/html/vendor
+      - shared-public:/var/www/html/public  # Volumen externo compartido
+    ports:
+      - "${APP_EXTERNAL_PORT}:${APP_PORT}"
     depends_on:
       - db
+      - redis
     networks:
-      - app_network
-    environment:
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_DATABASE=expo_cosmeticos
-      - DB_USERNAME=root
-      - DB_PASSWORD=Expo2025*.
+      - proxy_net
 
   db:
     image: mysql:8.0
-    container_name: expo_cosmeticos_db
-    restart: unless-stopped
-    environment:
-      MYSQL_DATABASE: expo_cosmeticos
-      MYSQL_ROOT_PASSWORD: Expo2025*.
-      MYSQL_ALLOW_EMPTY_PASSWORD: "no"
+    container_name: expo_db
     ports:
-      - "6565:3306"
-    command: 
-      - --default-authentication-plugin=mysql_native_password
+      - "${DB_EXTERNAL_PORT}:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_HOST: ${MYSQL_ROOT_HOST}
     volumes:
-      - mysql_data:/var/lib/mysql
+      - expo_db_data:/var/lib/mysql
     networks:
-      - app_network
+      - proxy_net
 
-volumes:
-  mysql_data:
+  redis:
+    image: redis:7-alpine
+    container_name: expo_redis
+    ports:
+      - "${REDIS_EXTERNAL_PORT}:6379"
+    networks:
+      - proxy_net
 
 networks:
-  app_network:
-    driver: bridge
+  proxy_net:
+    external: true
+
+volumes:
+  expo_db_data:
+  shared-public:
+    external: true
+    name: shared-public
