@@ -1,12 +1,11 @@
 version: '3.8'
 
 services:
-  # Contenedor PHP-FPM: ejecuta Laravel
-  php:
+  app:
     build:
       context: .
       dockerfile: .deploy/Dockerfile
-    container_name: expo_php
+    container_name: expo_app
     environment:
       APP_ENV: ${APP_ENV}
       APP_KEY: ${APP_KEY}
@@ -14,25 +13,15 @@ services:
       APP_URL: ${APP_URL}
     volumes:
       - .:/var/www/html
-    networks:
-      - expo_net
-
-  # Contenedor Nginx: sirve la app al proxy inverso
-  web:
-    image: nginx:alpine
-    container_name: expo_web
-    volumes:
-      - .:/var/www/html
-      - .deploy/nginx:/etc/nginx/conf.d:ro   # ✅ Usa carpeta, no archivo individual
+      - shared-public:/var/www/html/public  # Volumen externo compartido
+    ports:
+      - "${APP_EXTERNAL_PORT}:${APP_PORT}"
     depends_on:
-      - php
+      - db
+      - redis
     networks:
-      - expo_net
       - proxy_net
-    expose:
-      - 80  # Solo accesible desde proxy_net, no desde host directamente
 
-  # Base de datos MySQL (aislada)
   db:
     image: mysql:8.0
     container_name: expo_db
@@ -45,21 +34,22 @@ services:
     volumes:
       - expo_db_data:/var/lib/mysql
     networks:
-      - expo_net
+      - proxy_net
 
-  # Redis (aislado)
   redis:
     image: redis:7-alpine
     container_name: expo_redis
     ports:
       - "${REDIS_EXTERNAL_PORT}:6379"
     networks:
-      - expo_net
+      - proxy_net
+
+networks:
+  proxy_net:
+    external: true
 
 volumes:
   expo_db_data:
-
-networks:
-  expo_net:
-  proxy_net:
+  shared-public:
     external: true
+    name: shared-public
