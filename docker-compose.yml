@@ -13,7 +13,7 @@ services:
       APP_URL: ${APP_URL}
     volumes:
       - .:/var/www/html
-      - shared-public:/var/www/html/public  # Volumen externo compartido
+      - shared-public-expo:/var/www/html/public  # ✅ Volumen exclusivo para expo
     ports:
       - "${APP_EXTERNAL_PORT}:${APP_PORT}"
     depends_on:
@@ -50,6 +50,6 @@ networks:
 
 volumes:
   expo_db_data:
-  shared-public:
+  shared-public-expo:
     external: true
-    name: shared-public
+    name: shared-public-expo
