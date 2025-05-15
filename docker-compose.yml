@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  app:
+  expo_app:
     build:
       context: .
       dockerfile: .deploy/Dockerfile
@@ -13,16 +13,16 @@ services:
       APP_URL: ${APP_URL}
     volumes:
       - .:/var/www/html
-      - shared-public-expo:/var/www/html/public  # ✅ Volumen exclusivo para expo
+      - expo-public:/var/www/html/public     # ✅ Volumen exclusivo
     ports:
       - "${APP_EXTERNAL_PORT}:${APP_PORT}"
     depends_on:
-      - db
-      - redis
+      - expo_db
+      - expo_redis
     networks:
       - proxy_net
 
-  db:
+  expo_db:
     image: mysql:8.0
     container_name: expo_db
     ports:
@@ -30,13 +30,15 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
       MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_HOST: ${MYSQL_ROOT_HOST}
     volumes:
       - expo_db_data:/var/lib/mysql
     networks:
       - proxy_net
 
-  redis:
+  expo_redis:
     image: redis:7-alpine
     container_name: expo_redis
     ports:
@@ -50,6 +52,6 @@ networks:
 
 volumes:
   expo_db_data:
-  shared-public-expo:
+  expo-public:
     external: true
-    name: shared-public-expo
+    name: expo-public
