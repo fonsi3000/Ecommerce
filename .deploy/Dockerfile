@@ -43,11 +43,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 # Establece el directorio de trabajo
 WORKDIR /var/www/html
 
-# Copia el código fuente
+# Copia el código fuente completo
 COPY . .
 
-# Asigna permisos adecuados para Laravel
-RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+# Permisos iniciales para Laravel
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
 
 # Copia configuraciones personalizadas
 COPY .deploy/config/php.ini /usr/local/etc/php/php.ini
@@ -55,11 +55,11 @@ COPY .deploy/config/supervisor.conf /etc/supervisord.conf
 COPY .deploy/config/crontab /etc/crontabs/root
 COPY .deploy/entrypoint.sh /entrypoint.sh
 
-# Permisos
+# Asigna permisos de ejecución al entrypoint
 RUN chmod +x /entrypoint.sh
 
-# Expone puerto PHP-FPM
+# Expone el puerto PHP-FPM
 EXPOSE 9000
 
-# Punto de entrada
+# Define el punto de entrada
 CMD ["/entrypoint.sh"]

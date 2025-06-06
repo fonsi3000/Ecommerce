@@ -17,6 +17,10 @@ echo "✅ Redis disponible"
 # Git safe directory para evitar advertencias
 git config --global --add safe.directory /var/www/html
 
+echo "🛠 Asignando permisos iniciales a carpetas necesarias..."
+chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
+chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache /var/www/html/public
+
 echo "📦 Instalando dependencias con Composer..."
 composer install --no-dev --optimize-autoloader || {
   echo "❌ Falló composer install"
@@ -30,16 +34,20 @@ npm run build || {
   exit 1
 }
 
+echo "🔐 Reasignando permisos después del build..."
+chown -R www-data:www-data /var/www/html/public /var/www/html/storage
+chmod -R 755 /var/www/html/public /var/www/html/storage
+
 echo "⚙️ Ejecutando comandos de Laravel..."
 php artisan config:cache
 php artisan route:cache
 php artisan migrate --force
 php artisan key:generate --force
 
-# Ignora si el enlace ya existe
+echo "🔗 Creando symlink de storage (si no existe)..."
 php artisan storage:link || true
 
 echo "✅ Laravel listo para producción"
 
-# Inicia Supervisor (PHP-FPM + Cron)
+# Inicia Supervisor (PHP-FPM + cron)
 exec supervisord -c /etc/supervisord.conf
