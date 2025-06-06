@@ -13,7 +13,7 @@ services:
       APP_URL: ${APP_URL}
     volumes:
       - .:/var/www/html
-      - expo-public:/var/www/html/public     # ✅ Volumen exclusivo
+      - expo-public:/var/www/html/public/storage  # ✅ Enlaza el volumen externo SOLO a /public/storage
     ports:
       - "${APP_EXTERNAL_PORT}:${APP_PORT}"
     depends_on:
