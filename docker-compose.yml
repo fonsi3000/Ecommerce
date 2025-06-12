@@ -5,28 +5,26 @@ services:
     build:
       context: .
       dockerfile: .deploy/Dockerfile
-    container_name: ${APP_CONTAINER_NAME}
+    container_name: expo_app
     environment:
       APP_ENV: ${APP_ENV}
       APP_KEY: ${APP_KEY}
       APP_DEBUG: ${APP_DEBUG}
       APP_URL: ${APP_URL}
-      APP_PORT: ${APP_PORT}
-      APP_EXTERNAL_PORT: ${APP_EXTERNAL_PORT}
     volumes:
       - .:/var/www/html
-      - expo-public:/var/www/html/public  # ✅ Volumen montado en el directorio completo 'public'
+      - expo-public:/var/www/html/public   # Volumen externo aislado
     ports:
       - "${APP_EXTERNAL_PORT}:${APP_PORT}"
     depends_on:
       - expo_db
       - expo_redis
     networks:
-      - ${DOCKER_NETWORK}
+      - proxy_net
 
   expo_db:
     image: mysql:8.0
-    container_name: ${DB_CONTAINER_NAME}
+    container_name: expo_db
     ports:
       - "${DB_EXTERNAL_PORT}:3306"
     environment:
@@ -36,24 +34,24 @@ services:
       MYSQL_PASSWORD: ${DB_PASSWORD}
       MYSQL_ROOT_HOST: ${MYSQL_ROOT_HOST}
     volumes:
-      - ${DB_VOLUME_NAME}:/var/lib/mysql
+      - expo_db_data:/var/lib/mysql
     networks:
-      - ${DOCKER_NETWORK}
+      - proxy_net
 
   expo_redis:
     image: redis:7-alpine
-    container_name: ${REDIS_CONTAINER_NAME}
+    container_name: expo_redis
     ports:
       - "${REDIS_EXTERNAL_PORT}:6379"
     networks:
-      - ${DOCKER_NETWORK}
+      - proxy_net
 
 networks:
-  ${DOCKER_NETWORK}:
+  proxy_net:
     external: true
 
 volumes:
-  ${DB_VOLUME_NAME}:
-  expo-public:
+  expo_db_data:
+  expo-public:               # Declaración como volumen externo para expo
     external: true
     name: expo-public
