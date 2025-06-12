@@ -13,8 +13,8 @@ services:
       APP_URL: ${APP_URL}
     volumes:
       - .:/var/www/html
-      - expo-public-new:/var/www/expo/public    # Nuevo volumen para Expo public/
-      - expo-storage-new:/var/www/expo/storage  # Nuevo volumen para Expo storage/
+      - expo-public-new:/var/www/html/public                    # monta public/ completo
+      - expo-storage-new:/var/www/html/storage/app/public       # monta sólo storage/app/public
     ports:
       - "${APP_EXTERNAL_PORT}:${APP_PORT}"
     depends_on:
@@ -53,9 +53,9 @@ networks:
 
 volumes:
   expo_db_data:
-  expo-public-new:               # Nuevo volumen para Expo public/
+  expo-public-new:
     external: true
     name: expo-public-new
-  expo-storage-new:              # Nuevo volumen para Expo storage/
+  expo-storage-new:
     external: true
     name: expo-storage-new
