@@ -461,7 +461,7 @@
           </div>
         </div>
         
-        <!-- Cuadrícula de productos -->
+        <!-- Cuadrícula de productoss -->
         <div class="products-grid">
           @foreach($productos as $producto)
             @include('components.product-card', ['producto' => $producto])
