@@ -24,11 +24,13 @@
                     <p class="text-center col-span-4 text-gray-500">No hay productos disponibles</p>
                 @endforelse
 
-                {{-- Botón Ver más --}}
+                
+            </div>
+
+            {{-- Botón Ver más --}}
                 <div class="mt-10 flex justify-center">
                     {{ $productos->links('components.pagination-custom') }}
                 </div>
-            </div>
 
             
         </div>
