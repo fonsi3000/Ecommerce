@@ -864,7 +864,7 @@
         <div class="lightbox-counter" x-text="(lightboxIndex + 1) + ' / ' + images.length"></div>
       </div>
     </div>
-  </section>
+    </section>
 
   <!-- Productos relacionados -->
   <section class="related-products max-w-7xl mx-auto px-4">
@@ -903,7 +903,7 @@
       </div>
     </template>
   </div>
-</section>
+  </section>
 </div>
 
 <!-- Eliminamos el script anterior para usar el Store de Alpine.js -->

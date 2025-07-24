@@ -5,9 +5,9 @@
 @section('content')
     {{-- Slider --}}
     <x-slider :slides="[
-        ['image' => asset('images/slider1.png'), 'text' => '¡Descubre tu belleza en Expo Cosméticos 2025!'],
-        ['image' => asset('images/slider2.png'), 'text' => 'Transforma tu look con nuestras marcas exclusivas ¡Hasta 40% OFF!'],
-        ['image' => asset('images/slider3.png'), 'text' => '¡Solo por 3 días! Compra 2 productos y lleva el tercero GRATIS'],
+        ['image' => asset('images/slider1.png'), 'text' => ''],
+        // ['image' => asset('images/slider2.png'), 'text' => 'Transforma tu look con nuestras marcas exclusivas ¡Hasta 40% OFF!'],
+        // ['image' => asset('images/slider3.png'), 'text' => '¡Solo por 3 días! Compra 2 productos y lleva el tercero GRATIS'],
     ]" />
 
     {{-- Productos destacados --}}
@@ -23,12 +23,14 @@
                 @empty
                     <p class="text-center col-span-4 text-gray-500">No hay productos disponibles</p>
                 @endforelse
+
+                {{-- Botón Ver más --}}
+                <div class="mt-10 flex justify-center">
+                    {{ $productos->links('components.pagination-custom') }}
+                </div>
             </div>
 
-            {{-- Botón Ver más --}}
-            <div class="mt-10 flex justify-center">
-                {{ $productos->links('components.pagination-custom') }}
-            </div>
+            
         </div>
     </section>
 @endsection

@@ -468,10 +468,10 @@
           @endforeach
         </div>
         
-        <!-- Paginación -->
-        <div class="pagination-container">
-          {{ $productos->appends(['q' => $query])->links() }}
-        </div>
+        {{-- Botón Ver más --}}
+            <div class="mt-10 flex justify-center">
+                {{ $productos->links('components.pagination-custom') }}
+            </div>
       </div>
     @endif
     
