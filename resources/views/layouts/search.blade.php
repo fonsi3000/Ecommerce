@@ -405,16 +405,16 @@
         </button>
       </form>
     </div>
-    
+
     <!-- Cuando hay resultados -->
     @if($productos->isNotEmpty())
       <div class="results-container">
         <!-- Cabecera de resultados -->
         <div class="results-header">
           <p class="results-count">
-            <span>{{ $productos->total() }}</span> productos encontrados
+            <span>{{ $productos->count() }}</span> productos encontrados
           </p>
-          
+
           <!-- Opciones de ordenación -->
           <div class="sort-dropdown" x-data="{ open: false }">
             <button 
@@ -426,7 +426,7 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
               </svg>
             </button>
-            
+
             <div 
               x-show="open" 
               @click.outside="open = false"
@@ -460,20 +460,16 @@
             </div>
           </div>
         </div>
-        
-        <!-- Cuadrícula de productoss -->
+
+        <!-- Cuadrícula de productos -->
         <div class="products-grid">
           @foreach($productos as $producto)
             @include('components.product-card', ['producto' => $producto])
           @endforeach
         </div>
-        
-        {{-- Botón Ver más --}}
-            <div class="mt-10 flex justify-center">
-                {{ $productos->links('components.pagination-custom') }}
-            </div>
       </div>
     @endif
+
     
     <!-- Cuando no hay resultados -->
     @if($productos->isEmpty() && $query)

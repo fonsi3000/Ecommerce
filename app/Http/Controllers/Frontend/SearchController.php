@@ -65,7 +65,8 @@ class SearchController extends Controller
                     break;
             }
 
-            $productos = $productosQuery->paginate(12);
+            // Mostrar todos los productos (sin paginación)
+            $productos = $productosQuery->get();
 
             // Contar productos por categoría para filtros
             $categoriaCount = Product::where('name', 'LIKE', "%{$query}%")
@@ -80,7 +81,6 @@ class SearchController extends Controller
         }
 
         // Obtener categorías principales (todas las categorías, sin filtrar por parent_id)
-        // Ajustado para usar la relación existente en lugar de parent_id
         $menuCategories = Category::withCount('subCategories')
             ->orderBy('name')
             ->get();
